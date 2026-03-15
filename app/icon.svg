@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="gossi" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FF2D55"/>
+      <stop offset="100%" stop-color="#BF5AF2"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="18" fill="#080808"/>
+  <circle cx="32" cy="26" r="14" fill="url(#gossi)" opacity="0.95"/>
+  <path d="M20 48c3-7 9-11 12-11s9 4 12 11" fill="none" stroke="url(#gossi)" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="27" cy="24" r="2.5" fill="#fff"/>
+  <circle cx="37" cy="24" r="2.5" fill="#fff"/>
+</svg>

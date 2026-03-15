@@ -4,7 +4,7 @@
 //  Without credentials the app falls back to mock data automatically.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { Client, Databases, ID, Query } from 'appwrite'
+import { Client, Databases, ID, Query, Storage } from 'appwrite'
 import type { Post, Comment, Report, Ad, BannedWord, Campus, Reactions } from './types'
 
 // ── Client setup ─────────────────────────────────────────────────────────────
@@ -14,6 +14,7 @@ const client = new Client()
   .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID ?? '')
 
 export const databases = new Databases(client)
+export const storage   = new Storage(client)
 
 // Collection constants (match .env.local)
 export const DB            = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID     ?? 'gossi_db'
@@ -22,6 +23,7 @@ export const C_COMMENTS    = process.env.NEXT_PUBLIC_COLLECTION_COMMENTS      ??
 export const C_REPORTS     = process.env.NEXT_PUBLIC_COLLECTION_REPORTS       ?? 'reports'
 export const C_ADS         = process.env.NEXT_PUBLIC_COLLECTION_ADS           ?? 'ads'
 export const C_BANNED      = process.env.NEXT_PUBLIC_COLLECTION_BANNED_WORDS  ?? 'banned_words'
+export const B_AD_MEDIA    = process.env.NEXT_PUBLIC_ADS_BUCKET_ID            ?? ''
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -212,6 +214,15 @@ export async function createAd(
     createdAt: new Date().toISOString(),
   })
   return doc as unknown as Ad
+}
+
+export async function uploadAdMedia(file: File): Promise<string> {
+  if (!B_AD_MEDIA) {
+    throw new Error('Missing NEXT_PUBLIC_ADS_BUCKET_ID in environment.')
+  }
+
+  const uploaded = await storage.createFile(B_AD_MEDIA, ID.unique(), file)
+  return storage.getFileView(B_AD_MEDIA, uploaded.$id).toString()
 }
 
 export async function toggleAd(adId: string, isActive: boolean): Promise<void> {

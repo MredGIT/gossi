@@ -4,7 +4,7 @@ import {
   adminGetPosts, getAllReports, getAllAds,
   softDeletePost, createAd, toggleAd, deleteAd,
   getBannedWords, addBannedWord, removeBannedWord,
-  getAdminStats,
+  uploadAdMedia,
 } from '@/lib/appwrite'
 import { MOCK_POSTS } from '@/lib/mockData'
 import type { Post, Report, Ad, BannedWord } from '@/lib/types'
@@ -16,6 +16,7 @@ import {
 
 const USE_MOCK       = !process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID
 const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD ?? 'gossi2026'
+const HAS_AD_BUCKET  = Boolean(process.env.NEXT_PUBLIC_ADS_BUCKET_ID)
 
 // ── Tiny stat card ────────────────────────────────────────────────────────────
 function StatCard({
@@ -56,13 +57,19 @@ export default function AdminPage() {
   const [banned,    setBanned]    = useState<BannedWord[]>([])
   const [stats,     setStats]     = useState({ totalPosts: 0, totalReports: 0, activeAds: 0 })
   const [loading,   setLoading]   = useState(false)
+  const [reportsLoading, setReportsLoading] = useState(false)
+  const [reportsBlocked, setReportsBlocked] = useState(false)
 
   // ── New Ad form ───────────────────────────────────────────────────────────
   const [adTitle,   setAdTitle]   = useState('')
   const [adImg,     setAdImg]     = useState('')
+  const [adUploadedUrl, setAdUploadedUrl] = useState('')
+  const [adUploadName, setAdUploadName] = useState('')
   const [adLink,    setAdLink]    = useState('')
   const [adType,    setAdType]    = useState<'image' | 'video'>('image')
   const [adSaving,  setAdSaving]  = useState(false)
+  const [adUploading, setAdUploading] = useState(false)
+  const [adUploadError, setAdUploadError] = useState('')
 
   // ── Banned word form ──────────────────────────────────────────────────────
   const [newWord,   setNewWord]   = useState('')
@@ -73,17 +80,32 @@ export default function AdminPage() {
     try {
       if (USE_MOCK) {
         setPosts(MOCK_POSTS)
+        setReports([{ $id: 'mock-r-1', postId: 'mock-1', reason: 'Mock report', campus: 'anu', createdAt: new Date().toISOString() }])
         setStats({ totalPosts: MOCK_POSTS.length, totalReports: 2, activeAds: 1 })
       } else {
-        const [p, r, a, bw, s] = await Promise.all([
-          adminGetPosts(), getAllReports(), getAllAds(), getBannedWords(), getAdminStats(),
+        const [pRes, aRes, bwRes] = await Promise.allSettled([
+          adminGetPosts(),
+          getAllAds(),
+          getBannedWords(),
         ])
+
+        const p  = pRes.status === 'fulfilled'  ? pRes.value  : []
+        const a  = aRes.status === 'fulfilled'  ? aRes.value  : []
+        const bw = bwRes.status === 'fulfilled' ? bwRes.value : []
+
         setPosts(p)
-        setReports(r)
         setAds(a)
         setBanned(bw)
-        setStats(s)
+
+        setStats({
+          totalPosts: p.length,
+          totalReports: reports.length,
+          activeAds: a.filter(ad => ad.isActive).length,
+        })
       }
+    } catch (err) {
+      console.error(err)
+      alert('Failed to load admin data. Check Appwrite collection permissions and attributes.')
     } finally {
       setLoading(false)
     }
@@ -93,6 +115,29 @@ export default function AdminPage() {
     if (authed) loadAll()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed])
+
+  useEffect(() => {
+    if (!authed || tab !== 'reports') return
+
+    const loadReports = async () => {
+      if (USE_MOCK) return
+
+      setReportsLoading(true)
+      try {
+        const r = await getAllReports()
+        setReports(r)
+        setStats(prev => ({ ...prev, totalReports: r.length }))
+        setReportsBlocked(false)
+      } catch (err) {
+        console.error(err)
+        setReportsBlocked(true)
+      } finally {
+        setReportsLoading(false)
+      }
+    }
+
+    loadReports()
+  }, [authed, tab])
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const login = () => {
@@ -122,19 +167,56 @@ export default function AdminPage() {
   }
 
   const handleAddAd = async () => {
-    if (!adTitle || !adImg || !adLink) return
+    const mediaUrl = adImg.trim() || adUploadedUrl.trim()
+    if (!adTitle || !mediaUrl || !adLink) return
     setAdSaving(true)
     try {
       if (USE_MOCK) {
-        const mock: Ad = { $id: `ad-${Date.now()}`, title: adTitle, imageUrl: adImg, linkUrl: adLink, mediaType: adType, isActive: true, createdAt: new Date().toISOString() }
+        const mock: Ad = { $id: `ad-${Date.now()}`, title: adTitle, imageUrl: mediaUrl, linkUrl: adLink, mediaType: adType, isActive: true, createdAt: new Date().toISOString() }
         setAds(prev => [mock, ...prev])
       } else {
-        const ad = await createAd(adTitle, adImg, adLink, adType)
+        const ad = await createAd(adTitle, mediaUrl, adLink, adType)
         setAds(prev => [ad, ...prev])
       }
-      setAdTitle(''); setAdImg(''); setAdLink('')
+      setAdTitle(''); setAdImg(''); setAdUploadedUrl(''); setAdUploadName(''); setAdLink('')
+      setAdUploadError('')
+    } catch (err) {
+      console.error(err)
+      alert('Failed to publish ad. Verify ads collection permissions allow create/update.')
     } finally {
       setAdSaving(false)
+    }
+  }
+
+  const handleUploadMedia = async (file: File | null) => {
+    if (!file) return
+    setAdUploadError('')
+
+    if (!USE_MOCK && !HAS_AD_BUCKET) {
+      setAdUploadError('Upload is not configured yet. Add NEXT_PUBLIC_ADS_BUCKET_ID and create the bucket in Appwrite Storage.')
+      return
+    }
+
+    setAdUploading(true)
+    try {
+      if (USE_MOCK) {
+        const blobUrl = URL.createObjectURL(file)
+        setAdUploadedUrl(blobUrl)
+        setAdUploadName(file.name)
+      } else {
+        const url = await uploadAdMedia(file)
+        setAdUploadedUrl(url)
+        setAdUploadName(file.name)
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Upload failed.'
+      setAdUploadError(
+        message.includes('Storage bucket')
+          ? 'Bucket not found. Create Appwrite Storage bucket "ads_media" and allow file uploads.'
+          : 'Upload failed. Use a direct image/video URL for now, or finish storage setup.',
+      )
+    } finally {
+      setAdUploading(false)
     }
   }
 
@@ -191,7 +273,26 @@ export default function AdminPage() {
             <span className="font-black text-white text-lg">GOSSI Admin</span>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={loadAll} className="p-2 text-white/40 hover:text-white transition-colors">
+            <button
+              onClick={async () => {
+                await loadAll()
+                if (tab === 'reports' && !USE_MOCK) {
+                  setReportsLoading(true)
+                  try {
+                    const r = await getAllReports()
+                    setReports(r)
+                    setStats(prev => ({ ...prev, totalReports: r.length }))
+                    setReportsBlocked(false)
+                  } catch (err) {
+                    console.error(err)
+                    setReportsBlocked(true)
+                  } finally {
+                    setReportsLoading(false)
+                  }
+                }
+              }}
+              className="p-2 text-white/40 hover:text-white transition-colors"
+            >
               <RefreshCw className="w-4 h-4" />
             </button>
             <button onClick={() => setAuthed(false)} className="flex items-center gap-1.5 text-white/40 hover:text-red-400 text-xs transition-colors">
@@ -300,6 +401,14 @@ export default function AdminPage() {
                 <AlertTriangle className="w-8 h-8 text-gossi-orange mx-auto mb-3" />
                 <p className="text-white/60 text-sm">Reports will show here once Appwrite is connected.</p>
               </div>
+            ) : reportsLoading ? (
+              <p className="text-white/40 text-center py-10">Loading reports...</p>
+            ) : reportsBlocked ? (
+              <div className="bg-[#111] rounded-2xl p-5 border border-amber-500/20 text-center">
+                <AlertTriangle className="w-8 h-8 text-amber-400 mx-auto mb-3" />
+                <p className="text-amber-300 text-sm font-semibold">Reports are permission-blocked</p>
+                <p className="text-white/50 text-xs mt-1">In Appwrite, set reports collection `read` permission for admins/Any based on your policy.</p>
+              </div>
             ) : reports.length === 0 ? (
               <p className="text-white/40 text-center py-10">No reports yet ✅</p>
             ) : (
@@ -386,6 +495,27 @@ export default function AdminPage() {
                   placeholder="Image or Video URL"
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-3 text-white text-sm placeholder-white/30 outline-none focus:border-gossi-purple"
                 />
+                <div className="bg-white/5 border border-white/10 rounded-xl px-3 py-3">
+                  <p className="text-white/50 text-xs mb-2">or upload media file</p>
+                  <input
+                    type="file"
+                    accept={adType === 'image' ? 'image/*' : 'video/*'}
+                    onChange={e => handleUploadMedia(e.target.files?.[0] ?? null)}
+                    className="w-full text-xs text-white/70 file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-white"
+                  />
+                  {!HAS_AD_BUCKET && !USE_MOCK && (
+                    <p className="text-amber-400 text-xs mt-2">
+                      Uploads need an Appwrite Storage bucket first. You can still paste a media URL above.
+                    </p>
+                  )}
+                  {adUploading && <p className="text-gossi-purple text-xs mt-2">Uploading...</p>}
+                  {!adUploading && adUploadedUrl && (
+                    <p className="text-green-400 text-xs mt-2">Uploaded: {adUploadName || 'media file'} ✅</p>
+                  )}
+                  {!adUploading && adUploadError && (
+                    <p className="text-red-400 text-xs mt-2">{adUploadError}</p>
+                  )}
+                </div>
                 <input
                   value={adLink}
                   onChange={e => setAdLink(e.target.value)}
@@ -405,11 +535,34 @@ export default function AdminPage() {
                 </div>
                 <button
                   onClick={handleAddAd}
-                  disabled={adSaving || !adTitle || !adImg || !adLink}
+                  disabled={adSaving || adUploading || !adTitle || !(adImg.trim() || adUploadedUrl.trim()) || !adLink}
                   className="w-full btn-gossi py-3.5 text-sm font-bold disabled:opacity-40"
                 >
                   {adSaving ? 'Saving...' : '🚀 Publish Ad'}
                 </button>
+
+                {(adImg.trim() || adUploadedUrl.trim()) && (
+                  <div className="rounded-2xl overflow-hidden border border-white/10 bg-white/5">
+                    <div className="px-3 py-2 text-[11px] text-white/45 border-b border-white/10">Ad preview</div>
+                    <div className="h-40 bg-black/20">
+                      {adType === 'video' ? (
+                        <video
+                          src={adUploadedUrl.trim() || adImg.trim()}
+                          className="w-full h-full object-cover"
+                          muted
+                          playsInline
+                          controls
+                        />
+                      ) : (
+                        <img
+                          src={adUploadedUrl.trim() || adImg.trim()}
+                          alt="Ad preview"
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -422,7 +575,11 @@ export default function AdminPage() {
                   <div key={ad.$id} className={`bg-[#111] rounded-2xl border overflow-hidden ${ad.isActive ? 'border-gossi-purple/30' : 'border-white/5'}`}>
                     {ad.imageUrl && (
                       <div className="h-28 bg-white/5 overflow-hidden">
-                        <img src={ad.imageUrl} alt={ad.title} className="w-full h-full object-cover" />
+                        {ad.mediaType === 'video' ? (
+                          <video src={ad.imageUrl} className="w-full h-full object-cover" muted playsInline loop autoPlay />
+                        ) : (
+                          <img src={ad.imageUrl} alt={ad.title} className="w-full h-full object-cover" />
+                        )}
                       </div>
                     )}
                     <div className="p-4">

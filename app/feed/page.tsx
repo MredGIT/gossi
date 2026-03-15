@@ -12,6 +12,7 @@ import type { Post, Ad, Campus } from '@/lib/types'
 import { RefreshCw, Flame, ChevronDown, X } from 'lucide-react'
 
 const USE_MOCK = !process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID
+const AD_INTERVAL = 3
 
 const CATEGORY_OPTIONS = [
   { value: 'all',        label: 'All',        emoji: '✨' },
@@ -72,12 +73,12 @@ export default function FeedPage() {
     ? posts
     : posts.filter(p => p.category === filterCategory)
 
-  // Interleave ads every 5 posts
+  // Interleave ads every 3 posts
   const feedItems: Array<{ type: 'post' | 'ad'; data: Post | Ad; key: string }> = []
   filteredPosts.forEach((post, i) => {
     feedItems.push({ type: 'post', data: post, key: post.$id })
-    if ((i + 1) % 5 === 0 && ads.length > 0) {
-      const ad = ads[Math.floor(i / 5) % ads.length]
+    if ((i + 1) % AD_INTERVAL === 0 && ads.length > 0) {
+      const ad = ads[Math.floor(i / AD_INTERVAL) % ads.length]
       feedItems.push({ type: 'ad', data: ad, key: `ad-${i}` })
     }
   })
