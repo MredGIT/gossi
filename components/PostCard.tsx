@@ -19,9 +19,6 @@ const CARD_THEMES = [
 const CATEGORY_META: Record<string, { emoji: string; label: string }> = {
   tea:        { emoji: '☕', label: 'tea' },
   confession: { emoji: '🤫', label: 'confession' },
-  advice:     { emoji: '💡', label: 'advice' },
-  drama:      { emoji: '🎭', label: 'drama' },
-  random:     { emoji: '🎲', label: 'random' },
 }
 
 const ANON_NAMES = [

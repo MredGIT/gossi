@@ -1,16 +1,16 @@
 'use client'
-import { usePathname, useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { Home, Flame, Settings } from 'lucide-react'
 
 const NAV_ITEMS = [
-  { href: '/feed',     icon: Home,    label: 'Feed'     },
-  { href: '/trending', icon: Flame,   label: 'Trending' },
-  { href: '/admin',    icon: Settings, label: 'Admin'   },
+  { href: '/feed',     icon: Home,     label: 'Feed'     },
+  { href: '/trending', icon: Flame,    label: 'Trending' },
+  { href: '/admin',    icon: Settings, label: 'Admin'    },
 ]
 
 export default function Navigation() {
   const pathname = usePathname()
-  const router   = useRouter()
 
   return (
     <nav className="glass-nav fixed bottom-0 left-0 right-0 z-40 pb-safe">
@@ -18,9 +18,10 @@ export default function Navigation() {
         {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
           const active = pathname === href
           return (
-            <button
+            <Link
               key={href}
-              onClick={() => router.push(href)}
+              href={href}
+              prefetch
               className="flex flex-col items-center gap-1 px-5 py-2 rounded-2xl transition-all duration-200"
             >
               <div
@@ -38,7 +39,7 @@ export default function Navigation() {
               >
                 {label}
               </span>
-            </button>
+            </Link>
           )
         })}
       </div>

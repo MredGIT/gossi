@@ -14,12 +14,9 @@ import { RefreshCw, Flame } from 'lucide-react'
 const USE_MOCK = !process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID
 
 const CATEGORY_OPTIONS = [
-  { value: 'all', label: 'All', emoji: '✨' },
-  { value: 'tea', label: 'Tea', emoji: '☕' },
+  { value: 'all',        label: 'All',        emoji: '✨' },
+  { value: 'tea',        label: 'Tea',        emoji: '☕' },
   { value: 'confession', label: 'Confession', emoji: '🤫' },
-  { value: 'advice', label: 'Advice', emoji: '💡' },
-  { value: 'drama', label: 'Drama', emoji: '🎭' },
-  { value: 'random', label: 'Random', emoji: '🎲' },
 ]
 
 export default function FeedPage() {

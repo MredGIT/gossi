@@ -4,7 +4,7 @@
 
 export type Campus = 'anu' | 'uon' | 'strath' | 'ku' | 'other'
 
-export type Category = 'tea' | 'confession' | 'advice' | 'drama' | 'random'
+export type Category = 'tea' | 'confession'
 
 export interface Reactions {
   fire:  number

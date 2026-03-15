@@ -10,17 +10,14 @@ const USE_MOCK = !process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID
 const CATEGORIES: Array<{ value: Category; emoji: string; label: string; color: string }> = [
   { value: 'tea',        emoji: '☕', label: 'Tea',        color: '#FF9F0A' },
   { value: 'confession', emoji: '🤫', label: 'Confession', color: '#BF5AF2' },
-  { value: 'advice',     emoji: '💡', label: 'Advice',     color: '#0A84FF' },
-  { value: 'drama',      emoji: '🎭', label: 'Drama',      color: '#FF2D55' },
-  { value: 'random',     emoji: '🎲', label: 'Random',     color: '#30D158' },
 ]
 
 const PROMPTS = [
   "Spill the tea ☕ What's going on at campus?",
-  "Got a confession? 🤫 This is your safe space.",
-  "Need advice? Drop it here 💡",
-  "Witnessed drama? Don't let it die 🎭",
-  "Random thoughts are valid too 🎲",
+  "Something just happened and I CANNOT hold it in 🤫",
+  "No one knows it's me, so here goes nothing ☕",
+  "Okay real talk… 👀",
+  "Anonymous confession incoming 🔥",
 ]
 
 interface Props {
