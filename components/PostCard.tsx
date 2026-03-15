@@ -55,7 +55,7 @@ export default function PostCard({ post, index, campus, onUpdate, onDelete }: Pr
 
   const [reactions, setReactions] = useState<Reactions>(post.reactions)
   const [showComments, setShowComments] = useState(false)
-  const [showShare,    setShowShare]    = useState(false)
+  const [showSharePreview, setShowSharePreview] = useState(false)
   const [showMenu,     setShowMenu]     = useState(false)
   const [reacting,     setReacting]     = useState(false)
   const [reported,     setReported]     = useState(false)
@@ -86,8 +86,10 @@ export default function PostCard({ post, index, campus, onUpdate, onDelete }: Pr
     setReacting(false)
   }, [userReacted, reacting, reactions, post, onUpdate, REACTED_KEY])
 
+  const shareUrl = `${(process.env.NEXT_PUBLIC_APP_URL ?? 'https://gossi.vercel.app').replace(/\/$/, '')}/feed`
+
   const handleShare = async (channel: 'whatsapp' | 'copy' | 'native') => {
-    const url  = `${window.location.origin}/feed`
+    const url  = typeof window !== 'undefined' ? `${window.location.origin}/feed` : shareUrl
     const text = `${post.text}\n\n👀 via GOSSI — ${url}`
 
     if (channel === 'whatsapp') {
@@ -99,7 +101,7 @@ export default function PostCard({ post, index, campus, onUpdate, onDelete }: Pr
       try { await navigator.share({ title: 'GOSSI 🔥', text: post.text, url }) } catch {}
     }
 
-    setShowShare(false)
+    setShowSharePreview(false)
     if (!USE_MOCK) await incrementShare(post.$id, post.shareCount)
     onUpdate({ ...post, shareCount: post.shareCount + 1 })
   }
@@ -209,7 +211,7 @@ export default function PostCard({ post, index, campus, onUpdate, onDelete }: Pr
               {post.commentCount > 0 ? post.commentCount : 'Reply'}
             </button>
             <button
-              onClick={() => setShowShare(true)}
+              onClick={() => setShowSharePreview(true)}
               className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full"
               style={{ background: theme.tagBg, color: theme.tagText }}
             >
@@ -231,45 +233,80 @@ export default function PostCard({ post, index, campus, onUpdate, onDelete }: Pr
         />
       )}
 
-      {/* ── Share sheet ──────────────────────────────────────────────── */}
-      {showShare && (
-        <div className="modal-backdrop" onClick={() => setShowShare(false)}>
+      {/* ── Share preview (screenshot-first) ─────────────────────────── */}
+      {showSharePreview && (
+        <div className="modal-backdrop" onClick={() => setShowSharePreview(false)}>
           <div
-            className="fixed bottom-0 left-0 right-0 bg-[#111] rounded-t-3xl p-6 animate-slide-up border-t border-white/10 max-w-xl mx-auto"
+            className="fixed inset-0 z-[60] flex items-center justify-center p-5"
             onClick={e => e.stopPropagation()}
           >
-            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5" />
-            <p className="text-white font-bold text-base mb-4 text-center">Share this spill 👀</p>
-
-            <div className="space-y-3">
-              <button
-                onClick={() => handleShare('whatsapp')}
-                className="w-full flex items-center gap-3 bg-[#25D366]/15 border border-[#25D366]/25 rounded-2xl px-4 py-4 text-[#25D366] font-bold"
+            <div className="w-full max-w-md">
+              <div
+                className="rounded-3xl p-5 border shadow-2xl"
+                style={{ background: theme.bg, borderColor: `${theme.tagText}33` }}
               >
-                <span className="text-2xl">📱</span>
-                <span>Share to WhatsApp</span>
-              </button>
+                <div className="flex items-center justify-between mb-4">
+                  <span
+                    className="text-xs px-2.5 py-1 rounded-full font-bold"
+                    style={{ background: theme.tagBg, color: theme.tagText }}
+                  >
+                    {catMeta.emoji} #{catMeta.label}
+                  </span>
+                  <span className="text-xs font-black" style={{ color: theme.tagText, opacity: 0.65 }}>
+                    GOSSI
+                  </span>
+                </div>
 
-              <button
-                onClick={() => handleShare('native')}
-                className="w-full flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white font-bold"
-              >
-                <span className="text-2xl">📸</span>
-                <span>Share to Instagram Story</span>
-              </button>
+                <p className="text-[18px] leading-relaxed font-semibold mb-5" style={{ color: theme.text }}>
+                  {post.text}
+                </p>
 
-              <button
-                onClick={() => handleShare('copy')}
-                className="w-full flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white/70 font-semibold"
-              >
-                <span className="text-2xl">🔗</span>
-                <span>Copy Link</span>
+                <div className="flex items-center justify-between text-xs" style={{ color: theme.text, opacity: 0.65 }}>
+                  <span>@{anonName}</span>
+                  <span>{timeAgo}</span>
+                </div>
+
+                <div className="mt-4 pt-4 border-t" style={{ borderColor: `${theme.tagText}22` }}>
+                  <p className="text-[11px] font-semibold tracking-wide" style={{ color: theme.tagText }}>
+                    gossip lives here → {shareUrl}
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-center text-white/55 text-xs mt-3 mb-4">
+                Screenshot this card, or share directly below.
+              </p>
+
+              <div className="space-y-3">
+                <button
+                  onClick={() => handleShare('whatsapp')}
+                  className="w-full flex items-center gap-3 bg-[#25D366]/15 border border-[#25D366]/25 rounded-2xl px-4 py-4 text-[#25D366] font-bold"
+                >
+                  <span className="text-2xl">📱</span>
+                  <span>Share to WhatsApp</span>
+                </button>
+
+                <button
+                  onClick={() => handleShare('native')}
+                  className="w-full flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white font-bold"
+                >
+                  <span className="text-2xl">📸</span>
+                  <span>Share to Instagram Story</span>
+                </button>
+
+                <button
+                  onClick={() => handleShare('copy')}
+                  className="w-full flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white/70 font-semibold"
+                >
+                  <span className="text-2xl">🔗</span>
+                  <span>Copy Link</span>
+                </button>
+              </div>
+
+              <button onClick={() => setShowSharePreview(false)} className="w-full mt-3 py-3 text-white/40 text-sm">
+                Close
               </button>
             </div>
-
-            <button onClick={() => setShowShare(false)} className="w-full mt-3 py-3 text-white/40 text-sm">
-              Cancel
-            </button>
           </div>
         </div>
       )}
