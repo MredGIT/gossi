@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { X, Loader2 } from 'lucide-react'
 import { createPost } from '@/lib/appwrite'
+import { trackPosted } from '@/lib/activity'
 import { MOCK_POSTS } from '@/lib/mockData'
 import type { Post, Campus, Category } from '@/lib/types'
 
@@ -63,6 +64,7 @@ export default function CreatePostModal({ campus, onClose, onPost }: Props) {
         onPost(mock)
       } else {
         const post = await createPost(trimmed, campus, category)
+        trackPosted(post.$id)
         onPost(post)
       }
     } catch (err) {

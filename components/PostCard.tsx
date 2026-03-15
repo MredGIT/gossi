@@ -5,6 +5,7 @@ import { MessageCircle, Share2, Flag, MoreHorizontal } from 'lucide-react'
 import PostSpotlightModal from './PostSpotlightModal'
 import type { Post, Campus, Reactions } from '@/lib/types'
 import { addReaction, reportPost } from '@/lib/appwrite'
+import { trackReacted } from '@/lib/activity'
 import clsx from 'clsx'
 
 // ── Card color palette (cycles by index) ─────────────────────────────────────
@@ -70,6 +71,7 @@ export default function PostCard({ post, index, campus, onUpdate, onDelete: _onD
     setReactions(optimistic)
     setUserReacted(type)
     localStorage.setItem(REACTED_KEY, type)
+  trackReacted(post.$id)
 
     if (!USE_MOCK) {
       const updated = await addReaction(post.$id, reactions, type)

@@ -1,11 +1,12 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, Flame } from 'lucide-react'
+import { Home, Flame, Bell } from 'lucide-react'
 
 const NAV_ITEMS = [
   { href: '/feed',     icon: Home,  label: 'Feed'     },
   { href: '/trending', icon: Flame, label: 'Trending' },
+  { href: '/activity', icon: Bell,  label: 'Activity' },
 ]
 
 export default function Navigation() {

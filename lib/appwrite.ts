@@ -47,6 +47,24 @@ function mapPost(doc: Record<string, unknown>): Post {
 
 // ── Posts ─────────────────────────────────────────────────────────────────────
 
+export async function getPostsByIds(ids: string[]): Promise<Post[]> {
+  if (!ids.length) return []
+  // Appwrite limits array values per query — process in batches of 25
+  const results: Post[] = []
+  for (let i = 0; i < ids.length; i += 25) {
+    const batch = ids.slice(i, i + 25)
+    const res = await databases.listDocuments(DB, C_POSTS, [
+      Query.equal('$id', batch),
+      Query.equal('isDeleted', false),
+      Query.limit(25),
+    ])
+    results.push(...res.documents.map(mapPost))
+  }
+  // Preserve the original ID order (newest first as stored in activity)
+  const map = new Map(results.map(p => [p.$id, p]))
+  return ids.map(id => map.get(id)).filter(Boolean) as Post[]
+}
+
 export async function getPosts(campus: Campus, limit = 20, offset = 0): Promise<Post[]> {
   const res = await databases.listDocuments(DB, C_POSTS, [
     Query.equal('campus', campus),

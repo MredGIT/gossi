@@ -5,6 +5,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { Download, MessageCircle, Send, Share2, X } from 'lucide-react'
 import { toPng } from 'html-to-image'
 import { createComment, getComments, incrementShare } from '@/lib/appwrite'
+import { trackCommented } from '@/lib/activity'
 import { MOCK_COMMENTS } from '@/lib/mockData'
 import type { Campus, Comment, Post } from '@/lib/types'
 
@@ -87,6 +88,7 @@ export default function PostSpotlightModal({
       } else {
         const comment = await createComment(post.$id, trimmed)
         setComments(prev => [...prev, comment])
+        trackCommented(post.$id)
       }
 
       setCommentText('')
