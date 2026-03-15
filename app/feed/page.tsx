@@ -105,7 +105,7 @@ export default function FeedPage() {
     <div className="min-h-screen bg-[#080808] pb-28">
       {/* ── Header ──────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 glass-nav">
-        <div className="max-w-xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="max-w-xl mx-auto px-4 pt-3 pb-1 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-[26px] font-black gossi-text tracking-tight">GOSSI</span>
             <Flame className="w-5 h-5 text-gossi-orange" />
@@ -126,6 +126,9 @@ export default function FeedPage() {
               <ChevronDown className="w-3 h-3 ml-0.5 opacity-70" />
             </button>
           </div>
+        </div>
+        <div className="max-w-xl mx-auto px-4 pb-1.5">
+          <p className="text-[10px] text-white/25 font-medium tracking-wide">🫥 100% anonymous · no accounts · no traces</p>
         </div>
 
         {/* Category filter chips */}
