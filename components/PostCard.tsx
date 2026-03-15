@@ -2,10 +2,9 @@
 import { useState, useCallback } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { MessageCircle, Share2, Flag, MoreHorizontal } from 'lucide-react'
-import CommentModal from './CommentModal'
+import PostSpotlightModal from './PostSpotlightModal'
 import type { Post, Campus, Reactions } from '@/lib/types'
-import { addReaction, incrementShare, reportPost, softDeletePost } from '@/lib/appwrite'
-import { MOCK_COMMENTS } from '@/lib/mockData'
+import { addReaction, reportPost } from '@/lib/appwrite'
 import clsx from 'clsx'
 
 // ── Card color palette (cycles by index) ─────────────────────────────────────
@@ -47,15 +46,14 @@ interface Props {
   onDelete: (id: string)  => void
 }
 
-export default function PostCard({ post, index, campus, onUpdate, onDelete }: Props) {
+export default function PostCard({ post, index, campus, onUpdate, onDelete: _onDelete }: Props) {
   const theme     = CARD_THEMES[index % CARD_THEMES.length]
   const catMeta   = CATEGORY_META[post.category] ?? { emoji: '💬', label: post.category }
   const anonName  = getAnonName(post.$id)
   const timeAgo   = formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })
 
   const [reactions, setReactions] = useState<Reactions>(post.reactions)
-  const [showComments, setShowComments] = useState(false)
-  const [showSharePreview, setShowSharePreview] = useState(false)
+  const [showSpotlight, setShowSpotlight] = useState(false)
   const [showMenu,     setShowMenu]     = useState(false)
   const [reacting,     setReacting]     = useState(false)
   const [reported,     setReported]     = useState(false)
@@ -86,26 +84,6 @@ export default function PostCard({ post, index, campus, onUpdate, onDelete }: Pr
     setReacting(false)
   }, [userReacted, reacting, reactions, post, onUpdate, REACTED_KEY])
 
-  const shareUrl = `${(process.env.NEXT_PUBLIC_APP_URL ?? 'https://gossi.vercel.app').replace(/\/$/, '')}/feed`
-
-  const handleShare = async (channel: 'whatsapp' | 'copy' | 'native') => {
-    const url  = typeof window !== 'undefined' ? `${window.location.origin}/feed` : shareUrl
-    const text = `${post.text}\n\n👀 via GOSSI — ${url}`
-
-    if (channel === 'whatsapp') {
-      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
-    } else if (channel === 'copy') {
-      await navigator.clipboard.writeText(url)
-      alert('Link copied!')
-    } else if (channel === 'native' && navigator.share) {
-      try { await navigator.share({ title: 'GOSSI 🔥', text: post.text, url }) } catch {}
-    }
-
-    setShowSharePreview(false)
-    if (!USE_MOCK) await incrementShare(post.$id, post.shareCount)
-    onUpdate({ ...post, shareCount: post.shareCount + 1 })
-  }
-
   const handleReport = async () => {
     setShowMenu(false)
     if (reported) return alert('Already reported.')
@@ -122,13 +100,12 @@ export default function PostCard({ post, index, campus, onUpdate, onDelete }: Pr
     { type: 'sad',   emoji: '😢' },
   ]
 
-  const totalReactions = reactions.fire + reactions.heart + reactions.laugh + reactions.sad
-
   return (
     <>
       <article
         className="post-card animate-fade-up"
         style={{ background: theme.bg, animationDelay: `${(index % 5) * 60}ms`, animationFillMode: 'both' }}
+        onClick={() => setShowSpotlight(true)}
       >
         {/* ── Top row ──────────────────────────────────────────────── */}
         <div className="flex items-center justify-between mb-3">
@@ -151,7 +128,10 @@ export default function PostCard({ post, index, campus, onUpdate, onDelete }: Pr
               {catMeta.emoji} #{catMeta.label}
             </span>
             <button
-              onClick={() => setShowMenu(v => !v)}
+              onClick={(e) => {
+                e.stopPropagation()
+                setShowMenu(v => !v)
+              }}
               className="p-1 rounded-full opacity-40"
               style={{ color: theme.text }}
             >
@@ -164,7 +144,10 @@ export default function PostCard({ post, index, campus, onUpdate, onDelete }: Pr
         {showMenu && (
           <div className="absolute right-4 top-12 z-20 bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden shadow-xl">
             <button
-              onClick={handleReport}
+              onClick={(e) => {
+                e.stopPropagation()
+                handleReport()
+              }}
               className="flex items-center gap-2 w-full px-4 py-3 text-sm text-red-400 hover:bg-red-500/10"
             >
               <Flag className="w-4 h-4" /> Report Post
@@ -185,7 +168,10 @@ export default function PostCard({ post, index, campus, onUpdate, onDelete }: Pr
           {REACTIONS.map(({ type, emoji }) => (
             <button
               key={type}
-              onClick={() => handleReact(type)}
+              onClick={(e) => {
+                e.stopPropagation()
+                handleReact(type)
+              }}
               className={clsx(
                 'reaction-btn',
                 userReacted === type && 'active',
@@ -203,7 +189,10 @@ export default function PostCard({ post, index, campus, onUpdate, onDelete }: Pr
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setShowComments(true)}
+              onClick={(e) => {
+                e.stopPropagation()
+                setShowSpotlight(true)
+              }}
               className="flex items-center gap-1.5 text-xs font-semibold opacity-60"
               style={{ color: theme.text }}
             >
@@ -211,7 +200,10 @@ export default function PostCard({ post, index, campus, onUpdate, onDelete }: Pr
               {post.commentCount > 0 ? post.commentCount : 'Reply'}
             </button>
             <button
-              onClick={() => setShowSharePreview(true)}
+              onClick={(e) => {
+                e.stopPropagation()
+                setShowSpotlight(true)
+              }}
               className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full"
               style={{ background: theme.tagBg, color: theme.tagText }}
             >
@@ -223,92 +215,17 @@ export default function PostCard({ post, index, campus, onUpdate, onDelete }: Pr
         </div>
       </article>
 
-      {/* ── Comment modal ────────────────────────────────────────────── */}
-      {showComments && (
-        <CommentModal
+      {/* ── Spotlight modal (tap card to open) ───────────────────────── */}
+      {showSpotlight && (
+        <PostSpotlightModal
           post={post}
           campus={campus}
-          onClose={() => setShowComments(false)}
-          onCommented={() => onUpdate({ ...post, commentCount: post.commentCount + 1 })}
+          theme={theme}
+          categoryMeta={catMeta}
+          anonName={anonName}
+          onClose={() => setShowSpotlight(false)}
+          onMetaUpdate={(changes) => onUpdate({ ...post, ...changes })}
         />
-      )}
-
-      {/* ── Share preview (screenshot-first) ─────────────────────────── */}
-      {showSharePreview && (
-        <div className="modal-backdrop" onClick={() => setShowSharePreview(false)}>
-          <div
-            className="fixed inset-0 z-[60] flex items-center justify-center p-5"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="w-full max-w-md">
-              <div
-                className="rounded-3xl p-5 border shadow-2xl"
-                style={{ background: theme.bg, borderColor: `${theme.tagText}33` }}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <span
-                    className="text-xs px-2.5 py-1 rounded-full font-bold"
-                    style={{ background: theme.tagBg, color: theme.tagText }}
-                  >
-                    {catMeta.emoji} #{catMeta.label}
-                  </span>
-                  <span className="text-xs font-black" style={{ color: theme.tagText, opacity: 0.65 }}>
-                    GOSSI
-                  </span>
-                </div>
-
-                <p className="text-[18px] leading-relaxed font-semibold mb-5" style={{ color: theme.text }}>
-                  {post.text}
-                </p>
-
-                <div className="flex items-center justify-between text-xs" style={{ color: theme.text, opacity: 0.65 }}>
-                  <span>@{anonName}</span>
-                  <span>{timeAgo}</span>
-                </div>
-
-                <div className="mt-4 pt-4 border-t" style={{ borderColor: `${theme.tagText}22` }}>
-                  <p className="text-[11px] font-semibold tracking-wide" style={{ color: theme.tagText }}>
-                    gossip lives here → {shareUrl}
-                  </p>
-                </div>
-              </div>
-
-              <p className="text-center text-white/55 text-xs mt-3 mb-4">
-                Screenshot this card, or share directly below.
-              </p>
-
-              <div className="space-y-3">
-                <button
-                  onClick={() => handleShare('whatsapp')}
-                  className="w-full flex items-center gap-3 bg-[#25D366]/15 border border-[#25D366]/25 rounded-2xl px-4 py-4 text-[#25D366] font-bold"
-                >
-                  <span className="text-2xl">📱</span>
-                  <span>Share to WhatsApp</span>
-                </button>
-
-                <button
-                  onClick={() => handleShare('native')}
-                  className="w-full flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white font-bold"
-                >
-                  <span className="text-2xl">📸</span>
-                  <span>Share to Instagram Story</span>
-                </button>
-
-                <button
-                  onClick={() => handleShare('copy')}
-                  className="w-full flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl px-4 py-4 text-white/70 font-semibold"
-                >
-                  <span className="text-2xl">🔗</span>
-                  <span>Copy Link</span>
-                </button>
-              </div>
-
-              <button onClick={() => setShowSharePreview(false)} className="w-full mt-3 py-3 text-white/40 text-sm">
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </>
   )
