@@ -5,11 +5,11 @@ import CreatePostModal from '@/components/CreatePostModal'
 import AdCard from '@/components/AdCard'
 import LoadingCard from '@/components/LoadingCard'
 import Navigation from '@/components/Navigation'
-import { detectCampus, getCampusInfo } from '@/lib/campus'
+import { detectCampus, getCampusInfo, ALL_CAMPUSES, setCampusLocally } from '@/lib/campus'
 import { getPosts, getActiveAds } from '@/lib/appwrite'
 import { MOCK_POSTS } from '@/lib/mockData'
 import type { Post, Ad, Campus } from '@/lib/types'
-import { RefreshCw, Flame } from 'lucide-react'
+import { RefreshCw, Flame, ChevronDown, X } from 'lucide-react'
 
 const USE_MOCK = !process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID
 
@@ -26,6 +26,7 @@ export default function FeedPage() {
   const [loadingMore,    setLoadingMore]    = useState(false)
   const [hasMore,        setHasMore]        = useState(true)
   const [campus,         setCampus]         = useState<Campus>('anu')
+  const [showCampusPicker, setShowCampusPicker] = useState(false)
   const [showCreate,     setShowCreate]     = useState(false)
   const [filterCategory, setFilterCategory] = useState('all')
   const [refreshKey,     setRefreshKey]     = useState(0)
@@ -81,6 +82,13 @@ export default function FeedPage() {
     }
   })
 
+  const switchCampus = (c: Campus) => {
+    setCampusLocally(c)
+    setCampus(c)
+    setShowCampusPicker(false)
+    loadFeed(c)
+  }
+
   const handleNewPost = (post: Post) => {
     setPosts(prev => [post, ...prev])
     setShowCreate(false)
@@ -108,12 +116,14 @@ export default function FeedPage() {
             >
               <RefreshCw className="w-4 h-4" />
             </button>
-            <span
-              className="px-3 py-1 rounded-full text-xs font-bold border"
+            <button
+              onClick={() => setShowCampusPicker(true)}
+              className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border transition-all active:scale-95"
               style={{ color: campusInfo.color, borderColor: `${campusInfo.color}44`, background: `${campusInfo.color}18` }}
             >
               {campusInfo.emoji} {campusInfo.short}
-            </span>
+              <ChevronDown className="w-3 h-3 ml-0.5 opacity-70" />
+            </button>
           </div>
         </div>
 
@@ -195,6 +205,49 @@ export default function FeedPage() {
 
       {showCreate && (
         <CreatePostModal campus={campus} onClose={() => setShowCreate(false)} onPost={handleNewPost} />
+      )}
+
+      {showCampusPicker && (
+        <div className="modal-backdrop" onClick={() => setShowCampusPicker(false)}>
+          <div
+            className="fixed bottom-0 left-0 right-0 max-w-xl mx-auto bg-[#0f0f0f] rounded-t-3xl border-t border-white/8 animate-slide-up"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="pt-4 px-5 pb-6">
+              <div className="w-10 h-1 bg-white/15 rounded-full mx-auto mb-5" />
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-white font-black text-lg">Switch Campus</h2>
+                <button onClick={() => setShowCampusPicker(false)} className="p-1.5 text-white/30 hover:text-white rounded-lg">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="space-y-3">
+                {ALL_CAMPUSES.filter(c => c.id !== 'other').map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => switchCampus(c.id)}
+                    className="w-full flex items-center gap-4 p-4 rounded-2xl border transition-all active:scale-[0.98]"
+                    style={campus === c.id
+                      ? { borderColor: c.color, background: `${c.color}15` }
+                      : { borderColor: 'rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.03)' }
+                    }
+                  >
+                    <span className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background: `${c.color}22` }}>
+                      {c.emoji}
+                    </span>
+                    <div className="text-left flex-1">
+                      <p className="font-bold text-white text-sm">{c.name}</p>
+                      <p className="text-white/40 text-xs">{c.short}</p>
+                    </div>
+                    {campus === c.id && (
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: `${c.color}25`, color: c.color }}>Active ✓</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       <Navigation />
