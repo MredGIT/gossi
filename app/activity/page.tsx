@@ -57,7 +57,7 @@ export default function ActivityPage() {
     setReactedIds(rIds)
     setCommentedIds(cIds)
 
-    const allIds = [...new Set([...pIds, ...rIds, ...cIds])]
+    const allIds = Array.from(new Set([...pIds, ...rIds, ...cIds]))
 
     if (USE_MOCK || allIds.length === 0) {
       setLoading(false)
