@@ -1,0 +1,82 @@
+import { Post, Comment } from './types'
+
+export const MOCK_POSTS: Post[] = [
+  {
+    $id: 'mock-1',
+    text: "That lecturer who shows up 45 mins late but still ends class on time is the villain we did NOT vote for 💀",
+    campus: 'anu',
+    category: 'tea',
+    reactions: { fire: 123, heart: 45, laugh: 89, sad: 5 },
+    commentCount: 67,
+    shareCount: 89,
+    score: 573,
+    createdAt: new Date(Date.now() - 1000 * 60 * 20).toISOString(),
+  },
+  {
+    $id: 'mock-2',
+    text: "I think I'm falling for my study partner and I literally don't know what to do. We study together every night 😭🫠",
+    campus: 'anu',
+    category: 'confession',
+    reactions: { fire: 67, heart: 98, laugh: 8, sad: 12 },
+    commentCount: 134,
+    shareCount: 45,
+    score: 419,
+    createdAt: new Date(Date.now() - 1000 * 60 * 55).toISOString(),
+  },
+  {
+    $id: 'mock-3',
+    text: "Genuine question: how do y'all survive on mess food without losing your mind?? Tips needed URGENTLY 😩",
+    campus: 'anu',
+    category: 'advice',
+    reactions: { fire: 34, heart: 56, laugh: 23, sad: 45 },
+    commentCount: 78,
+    shareCount: 12,
+    score: 284,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+  },
+  {
+    $id: 'mock-4',
+    text: "The WiFi in Block C has been down for 3 DAYS. IT said 'we're working on it' three weeks ago 🙄🙄🙄",
+    campus: 'anu',
+    category: 'drama',
+    reactions: { fire: 89, heart: 15, laugh: 67, sad: 23 },
+    commentCount: 45,
+    shareCount: 38,
+    score: 465,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
+  },
+  {
+    $id: 'mock-5',
+    text: "Someone in the library today was literally crying while reading their WhatsApp messages 😭 we've all been there bestie",
+    campus: 'anu',
+    category: 'tea',
+    reactions: { fire: 45, heart: 78, laugh: 12, sad: 34 },
+    commentCount: 23,
+    shareCount: 15,
+    score: 275,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 7).toISOString(),
+  },
+  {
+    $id: 'mock-6',
+    text: "Hot take: morning CATs should be illegal. That's it. That's the whole confession. 🫠",
+    campus: 'anu',
+    category: 'random',
+    reactions: { fire: 201, heart: 89, laugh: 134, sad: 3 },
+    commentCount: 56,
+    shareCount: 102,
+    score: 1112,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 9).toISOString(),
+  },
+]
+
+export const MOCK_COMMENTS: Record<string, Comment[]> = {
+  'mock-1': [
+    { $id: 'c1', postId: 'mock-1', text: "Same! He came 40 mins late then dismissed us 10 mins early 💀", createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString() },
+    { $id: 'c2', postId: 'mock-1', text: "Which lecturer?? Asking for a friend 👀", createdAt: new Date(Date.now() - 1000 * 60 * 10).toISOString() },
+    { $id: 'c3', postId: 'mock-1', text: "Bro I paid 75k for this 😭😭", createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString() },
+  ],
+  'mock-2': [
+    { $id: 'c4', postId: 'mock-2', text: "JUST TELL THEM 🗣️", createdAt: new Date(Date.now() - 1000 * 60 * 40).toISOString() },
+    { $id: 'c5', postId: 'mock-2', text: "Same situation last year. I waited. They're now with someone else. Don't wait 😭", createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString() },
+  ],
+}
