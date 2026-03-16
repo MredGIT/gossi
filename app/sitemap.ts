@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://gossi.vercel.app'
+// Always use production URL for sitemap — never localhost
+const APP_URL = 'https://gossi.vercel.app'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   return [

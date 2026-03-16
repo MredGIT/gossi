@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next'
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://gossi.vercel.app'
+// Always use production URL — never localhost
+const APP_URL = 'https://gossi.vercel.app'
 
 export default function robots(): MetadataRoute.Robots {
   return {
